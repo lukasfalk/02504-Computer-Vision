@@ -1,5 +1,6 @@
 import itertools as it
 import numpy as np
+import cv2
 
 def box3d(n=16):
     points = []
@@ -45,3 +46,21 @@ def projectpoints_distortion(K: np.ndarray, R: np.ndarray, t: np.ndarray, Q: np.
     xy_d = xy * (1 + delta_r)
     pd = K @ PiInv(xy_d)
     return Pi(pd)
+
+def undistortImage(image, K, distCoeffs):
+    x, y = np.meshgrid(np.arange(image.shape[1]), np.arange(image.shape[0]))
+    p = np.stack((x, y, np.ones(x.shape))).reshape(3, -1)
+
+    q = np.linalg.inv(K) @ p
+    xy = q[:2]
+    r = np.sqrt(xy[0]**2 + xy[1]**2)
+    delta_r = sum([k * r**((i+1)*2) for i, k in enumerate(distCoeffs)])
+    xy_d = xy * (1 + delta_r)
+    q_d = PiInv(xy_d)
+    p_d = K @ q_d
+
+    x_d = p_d[0].reshape(x.shape).astype(np.float32)
+    y_d = p_d[1].reshape(y.shape).astype(np.float32)
+    assert (p_d[2]==1).all(), 'You did a mistake somewhere'
+    im_undistorted = cv2.remap(image, x_d, y_d, cv2.INTER_LINEAR)
+    return im_undistorted
