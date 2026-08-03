@@ -64,3 +64,7 @@ def undistortImage(image, K, distCoeffs):
     assert (p_d[2]==1).all(), 'You did a mistake somewhere'
     im_undistorted = cv2.remap(image, x_d, y_d, cv2.INTER_LINEAR)
     return im_undistorted
+
+def CrossOp(p):
+    p = p.flatten()
+    return np.cross(np.eye(3), p)
