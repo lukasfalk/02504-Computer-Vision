@@ -68,3 +68,22 @@ def undistortImage(image, K, distCoeffs):
 def CrossOp(p):
     p = p.flatten()
     return np.cross(np.eye(3), p)
+
+def triangulate(qs, Ps):
+    """
+    qs: list of n pixel coords, each shape (2,) or (2,1) — inhomogeneous
+    Ps: list of n projection matrices, each shape (3,4)
+    Returns: Q, the triangulated 3D point (homogeneous, shape (4,1))
+    """
+    B = []
+    for q, P in zip(qs, Ps):
+        q = np.array(q).flatten()
+        x, y = q[0], q[1]
+        B.append(x * P[2] - P[0])
+        B.append(y * P[2] - P[1])
+    B = np.array(B)
+
+    U, S, Vt = np.linalg.svd(B)
+    Q = Vt[-1]          # smallest singular vector = null-space solution
+    Q = Q / Q[-1]       # normalize so last coord is 1
+    return Q.reshape(-1, 1)
