@@ -87,3 +87,36 @@ def triangulate(qs, Ps):
     Q = Vt[-1]          # smallest singular vector = null-space solution
     Q = Q / Q[-1]       # normalize so last coord is 1
     return Q.reshape(-1, 1)
+
+def normalize2d(q):
+    """q: (2, n) inhomogeneous. Returns normalized points and T (acts on homogeneous)."""
+    mu = np.mean(q, axis=1, keepdims=True)
+    sigma = np.std(q - mu, axis=1, keepdims=True)
+
+    T = np.array([[1/sigma[0, 0], 0, -mu[0, 0]/sigma[0, 0]],
+                  [0, 1/sigma[1, 0], -mu[1, 0]/sigma[1, 0]],
+                  [0, 0, 1]])
+
+    return Pi(T @ PiInv(q)), T
+
+
+def hest(q1, q2, normalize=False):
+    """Estimate H such that q1 ~ H q2. q1, q2: (2, n) inhomogeneous."""
+    if normalize:
+        q1, T1 = normalize2d(q1)
+        q2, T2 = normalize2d(q2)
+
+    q1h, q2h = PiInv(q1), PiInv(q2)
+    n = q1h.shape[1]
+
+    B = np.zeros((3 * n, 9))
+    for i in range(n):
+        B[3*i:3*i+3, :] = np.kron(q2h[:, i].T, CrossOp(q1h[:, i]))
+
+    _, _, Vt = np.linalg.svd(B)
+    H = Vt[-1].reshape(3, 3).T
+
+    if normalize:
+        H = np.linalg.inv(T1) @ H @ T2
+
+    return H
